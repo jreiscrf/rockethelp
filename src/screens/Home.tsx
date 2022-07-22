@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   HStack,
   IconButton,
@@ -15,10 +15,14 @@ import { Filter } from "../components/Filter";
 import { Button } from "../components/Button";
 import { ChatTeardropText } from "phosphor-react-native";
 import { Order, OrderProps } from "../components/Order";
-import Logo from "../assets/logo_secondary.svg";
+import { Alert } from "react-native";
+import auth from "@react-native-firebase/auth";
 import { color } from "native-base/lib/typescript/theme/styled-system";
+import Logo from "../assets/logo_secondary.svg";
+import firestore from "@react-native-firebase/firestore";
 
 export function Home() {
+  const [loading, setIsLoading] = useState(true);
   const [statusSelected, SetStatusSelected] = useState<"open" | "closed">(
     "open"
   );
@@ -41,6 +45,35 @@ export function Home() {
     navigation.navigate("details", { orderId });
   }
 
+  function handleLogout() {
+    auth()
+      .signOut()
+      .catch((error) => {
+        console.log(error);
+        return Alert.alert("Sair", "Não foi possível sair.");
+      });
+  }
+
+  useEffect(() => {
+    setIsLoading(true);
+
+    const subscriber = firestore()
+      .collection("orders")
+      .where("status", "==", statusSelected)
+      .onSnapshot((snapshot) => {
+        const data = snapshot.docs.map((doc) => {
+          const { patrimony, description, status, created_at } = doc.data();
+
+          return {
+            id: doc.id,
+            patrimony,
+            description,
+            status,
+          };
+        });
+      });
+  }, []);
+
   return (
     <VStack flex={1} pb={6} bg="gray.700">
       <HStack
@@ -53,7 +86,10 @@ export function Home() {
         px={6}
       >
         <Logo />
-        <IconButton icon={<SignOut size={26} color={colors.gray[300]} />} />
+        <IconButton
+          onPress={handleLogout}
+          icon={<SignOut size={26} color={colors.gray[300]} />}
+        />
       </HStack>
 
       <VStack flex={1} px={6}>

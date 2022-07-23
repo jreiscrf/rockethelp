@@ -16,24 +16,18 @@ import { Button } from "../components/Button";
 import { ChatTeardropText } from "phosphor-react-native";
 import { Order, OrderProps } from "../components/Order";
 import { Alert } from "react-native";
-import auth from "@react-native-firebase/auth";
-import { color } from "native-base/lib/typescript/theme/styled-system";
+import { dateFormat } from "../utils/firestoreDateFormat";
+import { Loading } from "../components/Loading";
 import Logo from "../assets/logo_secondary.svg";
 import firestore from "@react-native-firebase/firestore";
+import auth from "@react-native-firebase/auth";
 
 export function Home() {
   const [loading, setIsLoading] = useState(true);
   const [statusSelected, SetStatusSelected] = useState<"open" | "closed">(
     "open"
   );
-  const [orders, setOrders] = useState<OrderProps[]>([
-    {
-      id: "123",
-      patrimony: "123456",
-      when: "18/07/2022 ás 14:00",
-      status: "open",
-    },
-  ]);
+  const [orders, setOrders] = useState<OrderProps[]>([]);
   const { colors } = useTheme();
   const navigation = useNavigation();
 
@@ -69,10 +63,14 @@ export function Home() {
             patrimony,
             description,
             status,
+            when: dateFormat(created_at),
           };
         });
+        setOrders(data);
+        setIsLoading(false);
       });
-  }, []);
+    return subscriber;
+  }, [statusSelected]);
 
   return (
     <VStack flex={1} pb={6} bg="gray.700">
@@ -119,27 +117,30 @@ export function Home() {
             isActive={statusSelected === "closed"}
           />
         </HStack>
-
-        <FlatList
-          data={orders}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Order data={item} onPress={() => handleOpenDetails(item.id)} />
-          )}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          ListEmptyComponent={() => (
-            <Center>
-              <ChatTeardropText color={colors.gray[300]} size={40} />
-              <Text color="gray.300" fontSize="xl" mt={6} textAlign="center">
-                {" "}
-                Você ainda não possui {"\n"}
-                solicitações{" "}
-                {statusSelected === "open" ? "em andamento" : "finalizados"}
-              </Text>
-            </Center>
-          )}
-        />
+        {loading ? (
+          <Loading />
+        ) : (
+          <FlatList
+            data={orders}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <Order data={item} onPress={() => handleOpenDetails(item.id)} />
+            )}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            ListEmptyComponent={() => (
+              <Center>
+                <ChatTeardropText color={colors.gray[300]} size={40} />
+                <Text color="gray.300" fontSize="xl" mt={6} textAlign="center">
+                  {" "}
+                  Você ainda não possui {"\n"}
+                  solicitações{" "}
+                  {statusSelected === "open" ? "em andamento" : "finalizados"}
+                </Text>
+              </Center>
+            )}
+          />
+        )}
 
         <Button title="Nova solicitação" onPress={handleNewOrder} />
       </VStack>
